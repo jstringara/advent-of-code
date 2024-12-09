@@ -131,11 +131,9 @@ def move_guard(
     visited_points: list[tuple[int, int]],
     position: tuple[int, int],
     direction: str,
-):  # TODO: Add return hint
+) -> tuple[list[tuple[int, int]], tuple[int, int], str]:
     # find the next turning point
     next_position, next_direction = find_next_turning_point(map, position, direction)
-
-    in_between = in_between_points(position, next_position)
 
     # add the points in between to the visited points
     visited_points += in_between_points(position, next_position)
