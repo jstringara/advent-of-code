@@ -17,96 +17,132 @@ def initial_direction_and_position(map: list[str]) -> tuple[tuple, str]:
             # find its position
             j = guard_search.start()
             position = (i, j)
-            # find the direction of the guard
-            character_at_position = line[j]
-            match character_at_position:
-                case "^":
-                    direction = "up"
-                case "v":
-                    direction = "down"
-                case "<":
-                    direction = "left"
-                case ">":
-                    direction = "right"
-                case _:
-                    raise ValueError("Invalid direction")
-            return position, direction
+            return position, get_direction_from_char(line[j])
 
     raise ValueError("No guard found")
 
 
-def find_next_move(
-    map: list[str], position: tuple[int, int], direction: str
-) -> tuple[tuple, str]:
-    # find the next position of the guard if it goes straight
-    match direction:
-        case "up":
-            next_position = (position[0] - 1, position[1])
-        case "down":
-            next_position = (position[0] + 1, position[1])
-        case "left":
-            next_position = (position[0], position[1] - 1)
-        case "right":
-            next_position = (position[0], position[1] + 1)
+def get_direction_from_char(guard_char: str) -> str:
+    match guard_char:
+        case "^":
+            return "up"
+        case "v":
+            return "down"
+        case "<":
+            return "left"
+        case ">":
+            return "right"
         case _:
             raise ValueError("Invalid direction")
 
-    # check if going straight is valid (we are not out-of-bounds and there is not a wall)
-    if (
-        not is_out_of_bounds(map, next_position)
-        and map[next_position[0]][next_position[1]] == "#"
-    ):
-        # turn the direction 90 degrees to the right
-        match direction:
-            case "up":
-                next_direction = "right"
-            case "down":
-                next_direction = "left"
-            case "left":
-                next_direction = "up"
-            case "right":
-                next_direction = "down"
-        return find_next_move(map, position, next_direction)
 
-    # we are going straight, no change in direction
-    return next_position, direction
+def change_direction(direction: str) -> str:
+    match direction:
+        case "up":
+            return "right"
+        case "down":
+            return "left"
+        case "left":
+            return "up"
+        case "right":
+            return "down"
+        case _:
+            raise ValueError("Invalid direction")
+
+
+def find_next_turning_point(
+    map: list[str], position: tuple[int, int], direction: str
+) -> tuple[tuple, str]:
+    # vertical search
+    if direction == "up":
+        for i in range(position[0] - 1, -1, -1):
+            if map[i][position[1]] == "#":
+                # return the turning points coordinates and turn 90 degrees
+                return (i + 1, position[1]), change_direction(direction)
+        # we reached the top of the map
+        return (-1, position[1]), direction
+    if direction == "down":
+        for i in range(position[0] + 1, len(map)):
+            if map[i][position[1]] == "#":
+                return (i - 1, position[1]), change_direction(direction)
+        return (len(map), position[1]), direction
+    # horizontal search
+    if direction == "left":
+        for j in range(position[1] - 1, -1, -1):
+            if map[position[0]][j] == "#":
+                return (position[0], j + 1), change_direction(direction)
+        return (position[0], -1), direction
+    if direction == "right":
+        for j in range(position[1] + 1, len(map[0])):
+            if map[position[0]][j] == "#":
+                return (position[0], j - 1), change_direction(direction)
+        return (position[0], len(map[0])), direction
+    # invalid direction
+    # should never reach here
+    raise ValueError("Invalid direction")
+
+
+def in_between_points(
+    starting_point: tuple[int, int], arrival_point: tuple[int, int]
+) -> list[tuple[int, int]]:
+    # check that at least one of the coordinates is the same
+    if starting_point[0] != arrival_point[0] and starting_point[1] != arrival_point[1]:
+        raise ValueError("Points are not in a straight line")
+
+    # we go left to right
+    if starting_point[0] == arrival_point[0] and starting_point[1] < arrival_point[1]:
+        return [
+            (starting_point[0], j)
+            for j in range(starting_point[1] + 1, arrival_point[1])
+        ]
+    # we go right to left
+    if starting_point[0] == arrival_point[0] and starting_point[1] > arrival_point[1]:
+        return list(
+            reversed(
+                [
+                    (starting_point[0], j)
+                    for j in range(arrival_point[1] + 1, starting_point[1])
+                ]
+            )
+        )
+    # if we go from top to bottom
+    if starting_point[1] == arrival_point[1] and starting_point[0] < arrival_point[0]:
+        return [
+            (i, starting_point[1])
+            for i in range(starting_point[0] + 1, arrival_point[0])
+        ]
+    # if we go from bottom to top
+    if starting_point[1] == arrival_point[1] and starting_point[0] > arrival_point[0]:
+        return list(
+            reversed(
+                [
+                    (i, starting_point[1])
+                    for i in range(arrival_point[0] + 1, starting_point[0])
+                ]
+            )
+        )
+
+    # should never reach here
+    raise ValueError("Invalid points")
 
 
 def move_guard(
-    map: list[str], position: tuple[int, int], direction: str
-) -> tuple[list[str], tuple, str]:
-    # find the next position of the guard
-    next_position, next_direction = find_next_move(map, position, direction)
-    # put an X in the current position
-    map[position[0]] = "".join(
-        [
-            map[position[0]][: position[1]],
-            "X",
-            map[position[0]][position[1] + 1 :],
-        ]
-    )
-    # if the next position is out of bounds
-    if is_out_of_bounds(map, next_position):
-        return map, next_position, next_direction
-    # put the guard in the next position
-    char = "G"
-    if next_direction == "up":
-        char = "^"
-    if next_direction == "down":
-        char = "v"
-    if next_direction == "left":
-        char = "<"
-    if next_direction == "right":
-        char = ">"
-    map[next_position[0]] = "".join(
-        [
-            map[next_position[0]][: next_position[1]],
-            char,
-            map[next_position[0]][next_position[1] + 1 :],
-        ]
-    )
+    map: list[str],
+    visited_points: list[tuple[int, int]],
+    position: tuple[int, int],
+    direction: str,
+):  # TODO: Add return hint
+    # find the next turning point
+    next_position, next_direction = find_next_turning_point(map, position, direction)
 
-    return map, next_position, next_direction
+    in_between = in_between_points(position, next_position)
+
+    # add the points in between to the visited points
+    visited_points += in_between_points(position, next_position)
+    if not is_out_of_bounds(map, next_position):
+        visited_points.append(next_position)
+
+    return visited_points, next_position, next_direction
 
 
 def is_out_of_bounds(map: list[str], position) -> bool:
@@ -125,26 +161,26 @@ def distance(point_1: tuple[int, int], point_2: tuple[int, int]) -> int:
 def find_all_positions(map: list[str]):
     # get the initial position
     position, direction = initial_direction_and_position(map)
-    # list to keep track of the 'nodes' of the graph
-    turning_points = [position]
+    # list to keep track of the points where we turned
+    turning_points = []
     # list to keep track of the points we visited
     visited_points = [position]
-    # adjacency matrix to map how turning points relate to one another
-    adjacency_matrix = []
+    # until we are out of bounds
     while not is_out_of_bounds(map, position):
-        map, next_position, next_direction = move_guard(map, position, direction)
+        visited_points, next_position, next_direction = move_guard(
+            map, visited_points, position, direction
+        )
         # check if there was a change in direction and save the new direction
         if next_direction != direction:
-            turning_points.append(position)
-        if position:
-            visited_points.append(position)
+            turning_points.append(next_position)
         # update
         position, direction = next_position, next_direction
 
-    return map, turning_points, visited_points
+    return turning_points, visited_points
 
 
-test_string = """....#.....
+test_string = """
+....#.....
 .........#
 ..........
 ..#.......
@@ -169,15 +205,13 @@ test_sum = 41
 
 test_map = process_input(test_string)
 
-my_map, my_turning_points, my_visited_points = find_all_positions(test_map)
+my_turning_points, my_visited_points = find_all_positions(test_map)
 
-my_answer = "\n".join(my_map)
 my_sum = len(set(my_visited_points))
 
-if my_answer == test_answer and my_sum == test_sum:
+if my_sum == test_sum:
     print("Test passed")
 else:
-    print(f"Test failed: {my_answer} != {test_answer}")
     print(f"Test failed: {my_sum} != {test_sum}")
 
 # open the file in the same directory as the script
@@ -186,11 +220,8 @@ with open(sys.path[0] + "/my.txt", "r") as f:
 
 my_map = process_input(my_string)
 
-(
-    my_map,
-    my_turning_points,
-    my_visited_points,
-) = find_all_positions(my_map)
+my_turning_points, my_visited_points = find_all_positions(my_map)
+
 my_sum = len(set(my_visited_points))
 
 print(my_sum)
