@@ -33,13 +33,13 @@ def find_antinodes(loc_1, loc_2, grid):
     y_distance = loc_1[1] - loc_2[1]
 
     antinodes = []
+    antinode_1 = (loc_1[0] + x_distance, loc_1[1] + y_distance)
+    antinode_2 = (loc_2[0] - x_distance, loc_2[1] - y_distance)
 
-    antinodes = [
-        (loc_1[0] + x_distance, loc_1[1] + y_distance),
-        (loc_2[0] - x_distance, loc_2[1] - y_distance),
-    ]
-
-    antinodes = [antinode for antinode in antinodes if is_point_valid(antinode, grid)]
+    if is_point_valid(antinode_1, grid):
+        antinodes += [loc_1]
+    if is_point_valid(antinode_2, grid):
+        antinodes += [loc_2]
 
     return antinodes
 
@@ -48,7 +48,7 @@ def find_all_unique_antinodes(grid):
     antennas = find_antennas_location(grid)
     # create a list of antinodes
     unique_antinodes = []
-    for antenna_type, locations in antennas.items():
+    for _, locations in antennas.items():
         # find all combinations of locations
         for loc_1, loc_2 in itertools.combinations(locations, 2):
             antinodes = find_antinodes(loc_1, loc_2, grid)
