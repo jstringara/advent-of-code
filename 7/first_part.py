@@ -13,11 +13,14 @@ def process_input(input_string: str) -> list:
 
 
 def is_equation_possible(result, numbers, string=""):
+    # all operations are strictly increasing
+    if numbers[0] > result:
+        return False
+
     if string == "":
         string = str(numbers[0])
     if len(numbers) == 1:
         # Base case: if only one number is left, check if it equals the result
-        print(f"{string} = {numbers[0]} -> {result}")
         return numbers[0] == result
 
     add_result = numbers[0] + numbers[1]
@@ -80,4 +83,4 @@ my_correct_equations = [
     key for key, value in my_input if is_equation_possible(key, value)
 ]
 
-print(sum(set(my_correct_equations)))
+print(sum(my_correct_equations))
