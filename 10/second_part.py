@@ -76,7 +76,7 @@ test_input = """
 01329801
 10456732
 """
-test_num_trailheads = 81
+test_num_trailheads = 9
 test_scores = [20, 24, 10, 4, 1, 4, 5, 8, 5]
 test_sum = sum(test_scores)
 
